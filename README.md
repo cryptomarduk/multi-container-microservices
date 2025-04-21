@@ -4,7 +4,6 @@ A comprehensive DevOps-focused demonstration project featuring microservices arc
 
 ## Architecture Overview
 
-![Architecture Diagram](architecture-diagram.png)
 
 This project implements a robust microservices architecture with:
 
