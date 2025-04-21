@@ -1,60 +1,40 @@
 # Multi-Container Microservices Project
 
-This repository demonstrates a DevOps-focused microservices architecture using Docker containers, Docker Compose, and CI/CD pipeline integration. The project showcases key skills relevant for a DevOps Engineer position.
+A comprehensive DevOps-focused demonstration project featuring microservices architecture with Docker containers, advanced CI/CD pipeline integration, and modern monitoring solutions.
 
 ## Architecture Overview
 
-This project implements a microservices architecture with:
+![Architecture Diagram](architecture-diagram.png)
 
-- **Python Flask API**: Backend service for data processing
-- **Node.js Express API**: Frontend service with REST endpoints
-- **MongoDB**: NoSQL database for persistent storage
+This project implements a robust microservices architecture with:
+
+- **Python Flask API**: Backend service for data processing and analysis
+- **Node.js Express API**: Frontend service providing RESTful endpoints
+- **MongoDB**: NoSQL database for persistent data storage
 - **Redis**: In-memory cache for performance optimization
 - **Nginx**: Load balancer and reverse proxy
-- **Prometheus & Grafana**: For monitoring and observability
+- **Prometheus & Grafana**: For comprehensive monitoring and observability
+
+## Key Features
+
+- **Containerized Microservices**: Each component runs in its own Docker container
+- **Service Communication**: Inter-service communication with RESTful APIs
+- **Database Integration**: MongoDB for persistent storage with Redis caching
+- **Load Balancing**: Nginx configuration with reverse proxy and rate limiting
+- **Monitoring Stack**: Prometheus metrics collection with Grafana dashboards
+- **CI/CD Pipeline**: Automated testing, building, and deployment with GitHub Actions
+- **Docker Compose**: Development and production environment configurations
+- **Infrastructure as Code**: Ready for cloud deployment
 
 ## Technology Stack
 
 - **Containerization**: Docker, Docker Compose
-- **Languages**: Python, JavaScript (Node.js)
+- **Languages**: Python (Flask), JavaScript (Node.js/Express)
 - **Databases**: MongoDB, Redis
 - **Web Server**: Nginx
 - **Monitoring**: Prometheus, Grafana
 - **CI/CD**: GitHub Actions
-- **Security**: Container scanning, secret management
-
-## Project Structure
-
-```
-├── .github/
-│   └── workflows/
-│       ├── ci-pipeline.yml
-│       └── cd-pipeline.yml
-├── python-service/
-│   ├── Dockerfile
-│   ├── app.py
-│   ├── requirements.txt
-│   └── tests/
-├── node-service/
-│   ├── Dockerfile
-│   ├── server.js
-│   ├── package.json
-│   └── tests/
-├── nginx/
-│   ├── Dockerfile
-│   └── nginx.conf
-├── monitoring/
-│   ├── prometheus/
-│   │   └── prometheus.yml
-│   └── grafana/
-│       └── dashboards/
-├── scripts/
-│   ├── deploy.sh
-│   └── healthcheck.sh
-├── docker-compose.yml
-├── docker-compose.prod.yml
-└── README.md
-```
+- **Security**: Container scanning, secret management, environment isolation
 
 ## Getting Started
 
@@ -62,9 +42,9 @@ This project implements a microservices architecture with:
 
 - Docker and Docker Compose
 - Git
-- GitHub account (for CI/CD)
+- (Optional) GitHub account for CI/CD pipeline
 
-### Local Development
+### Local Development Setup
 
 1. Clone the repository:
    ```bash
@@ -81,66 +61,112 @@ This project implements a microservices architecture with:
    - Python API: http://localhost:5000
    - Node.js API: http://localhost:3000
    - Nginx (combined APIs): http://localhost:80
-   - Grafana Dashboards: http://localhost:3001
+   - Grafana Dashboards: http://localhost:3001 (admin/admin)
+   - Prometheus: http://localhost:9090
 
 ### Running Tests
 
 ```bash
-docker-compose run python-service pytest
-docker-compose run node-service npm test
+# Python service tests
+docker-compose exec python-service pytest
+
+# Node.js service tests
+docker-compose exec node-service npm test
+
+# Run all tests with the testing script
+./scripts/run_tests.sh
 ```
 
 ## CI/CD Pipeline
 
-This project uses GitHub Actions for continuous integration and deployment:
+This project includes a comprehensive CI/CD pipeline using GitHub Actions:
 
-1. **CI Pipeline**: Triggered on pull requests to main branch
-   - Runs unit and integration tests
-   - Performs static code analysis
-   - Scans Docker images for vulnerabilities
-   - Builds Docker images
+### CI Pipeline (Runs on Pull Requests)
+- Linting and static code analysis
+- Unit and integration tests for all services
+- Docker image building and testing
+- Security scanning with Trivy
+- Integration testing of services
 
-2. **CD Pipeline**: Triggered on push to main branch
-   - Builds and tags Docker images
-   - Pushes images to Docker Hub
-   - Deploys to staging environment
-   - Runs smoke tests
-   - (Optional) Deploys to production with approval
+### CD Pipeline (Runs on Merge to Main)
+- Automated Docker image building
+- Image tagging with semantic versioning
+- Publishing to Docker Hub registry
+- Deployment to staging environment
+- Smoke tests
+- Manual approval gate for production deployment
+- Deployment to production environment
 
-## Monitoring and Observability
+## Deployment
+
+### Using the Deploy Script
+
+The project includes a deployment script that handles:
+- Environment detection (development, staging, production)
+- Container health checks
+- Graceful updates
+
+```bash
+# Deploy to development environment
+./scripts/deploy.sh
+
+# Deploy to staging environment
+ENVIRONMENT=staging ./scripts/deploy.sh
+
+# Deploy to production environment  
+ENVIRONMENT=production ./scripts/deploy.sh
+```
+
+### Docker Swarm Deployment
+
+For production environments, the project supports Docker Swarm:
+
+```bash
+# Initialize swarm
+docker swarm init
+
+# Deploy stack
+docker stack deploy -c docker-compose.prod.yml microservices-stack
+```
+
+## Monitoring
 
 The project includes a comprehensive monitoring stack:
 
 - **Prometheus**: Collects metrics from all services
-- **Grafana**: Visualizes metrics with pre-configured dashboards
-- **Log Aggregation**: Centralized logging with ELK stack (optional extension)
+- **Grafana**: Visualizes metrics with pre-configured dashboards for:
+  - Request rates and response times
+  - Error rates
+  - CPU and memory usage
+  - Database performance
 
-## Security Features
+Default Grafana login: admin/admin
 
-- Multi-stage Docker builds for smaller image footprint
-- Container security scanning in CI pipeline
-- Proper secret management using environment variables
-- Principle of least privilege in container configurations
+## Project Structure
 
-## Extending the Project
-
-### Adding New Services
-
-1. Create a directory for your service
-2. Add Dockerfile and required code
-3. Update docker-compose.yml to include your service
-4. Update Nginx configuration if needed
-5. Add monitoring configuration
-
-### Scaling with Docker Swarm (Future Extension)
-
-Instructions for deploying the stack on Docker Swarm:
-
-```bash
-docker stack deploy -c docker-compose.prod.yml microservices-stack
+```
+├── .github/workflows/    # CI/CD pipeline definitions
+├── python-service/       # Python Flask API service
+├── node-service/         # Node.js Express API service 
+├── nginx/                # Load balancer and reverse proxy
+├── monitoring/           # Prometheus and Grafana configs
+├── scripts/              # Utility scripts for deployment
+├── docker-compose.yml    # Development environment
+└── docker-compose.prod.yml # Production environment
 ```
 
+## Security Considerations
+
+- Multi-stage Docker builds for minimal attack surface
+- Container vulnerability scanning in CI pipeline
+- Environment-specific configuration
+- No hard-coded secrets (environment variables used)
+- Principle of least privilege in container configurations
+- Rate limiting on API endpoints
+
 ## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
