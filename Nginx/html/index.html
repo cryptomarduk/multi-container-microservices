@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microservices Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        header {
+            background-color: #4285F4;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            margin: 0;
+        }
+        .services {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .service {
+            flex-basis: 48%;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .endpoints {
+            background-color: #f1f1f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .endpoint {
+            background-color: #e9e9e9;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Multi-Container Microservices Demo</h1>
+            <p>A DevOps-focused demonstration of containerized microservices</p>
+        </header>
+
+        <div class="services">
+            <div class="service">
+                <h2>Python API Service</h2>
+                <p>Flask-based backend service for data processing and analysis.</p>
+                <div class="endpoints">
+                    <h3>Available Endpoints:</h3>
+                    <div class="endpoint">GET /api/python/</div>
+                    <div class="endpoint">GET /api/python/health</div>
+                    <div class="endpoint">GET /api/python/data</div>
+                    <div class="endpoint">POST /api/python/data</div>
+                    <div class="endpoint">POST /api/python/process</div>
+                </div>
+            </div>
+            
+            <div class="service">
+                <h2>Node.js API Service</h2>
+                <p>Express-based frontend service with RESTful endpoints.</p>
+                <div class="endpoints">
+                    <h3>Available Endpoints:</h3>
+                    <div class="endpoint">GET /api/node/</div>
+                    <div class="endpoint">GET /api/node/health</div>
+                    <div class="endpoint">GET /api/node/users</div>
+                    <div class="endpoint">POST /api/node/users</div>
+                    <div class="endpoint">POST /api/node/process-with-python</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="service">
+            <h2>Monitoring</h2>
+            <p>Access the monitoring dashboards:</p>
+            <div class="endpoints">
+                <div class="endpoint">Grafana: <a href="/grafana/">http://localhost:3001</a> (admin/admin)</div>
+                <div class="endpoint">Prometheus: <a href="/prometheus/">http://localhost:9090</a></div>
+            </div>
+        </div>
+
+        <footer>
+            <p>&copy; 2025 Multi-Container Microservices Demo</p>
+        </footer>
+    </div>
+</body>
+</html>
