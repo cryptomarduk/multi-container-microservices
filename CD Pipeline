@@ -1,0 +1,169 @@
+name: CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-push:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+      # Get version from tags
+      - name: Get version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
+      
+      # Python service
+      - name: Build and push Python service image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./python-service
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/python-service:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/python-service:${{ github.sha }}
+          target: production
+      
+      # Node.js service
+      - name: Build and push Node.js service image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./node-service
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/node-service:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/node-service:${{ github.sha }}
+          target: production
+      
+      # Nginx service
+      - name: Build and push Nginx image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./nginx
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/nginx-service:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/nginx-service:${{ github.sha }}
+  
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment:
+      name: staging
+      url: https://staging.example.com
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      # Setup SSH for remote deployment
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: ${{ secrets.KNOWN_HOSTS }}
+      
+      # Prepare docker-compose for staging
+      - name: Prepare docker-compose for staging
+        run: |
+          sed "s/latest/${{ github.sha }}/g" docker-compose.prod.yml > docker-compose.staging.yml
+      
+      # Copy docker-compose file to staging server
+      - name: Copy docker-compose file to staging
+        run: |
+          scp docker-compose.staging.yml ${{ secrets.SSH_USER }}@${{ secrets.STAGING_HOST }}:~/docker-compose.yml
+      
+      # Deploy to staging server
+      - name: Deploy to staging
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.STAGING_HOST }} "
+            docker-compose down || true
+            docker-compose pull
+            docker-compose up -d
+          "
+      
+      # Run smoke tests on staging
+      - name: Run smoke tests
+        run: |
+          timeout 300 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' https://staging.example.com/health)" != "200" ]]; do sleep 5; done' || false
+          curl -f https://staging.example.com/api/python/
+          curl -f https://staging.example.com/api/node/
+  
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    environment:
+      name: production
+      url: https://example.com
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      # Requires manual approval through GitHub Environments
+      
+      # Setup SSH for remote deployment
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: ${{ secrets.KNOWN_HOSTS }}
+      
+      # Prepare docker-compose for production
+      - name: Prepare docker-compose for production
+        run: |
+          sed "s/latest/${{ github.sha }}/g" docker-compose.prod.yml > docker-compose.prod.versioned.yml
+      
+      # Copy docker-compose file to production server
+      - name: Copy docker-compose file to production
+        run: |
+          scp docker-compose.prod.versioned.yml ${{ secrets.SSH_USER }}@${{ secrets.PRODUCTION_HOST }}:~/docker-compose.yml
+      
+      # Deploy to production server
+      - name: Deploy to production
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.PRODUCTION_HOST }} "
+            docker-compose down || true
+            docker-compose pull
+            docker-compose up -d
+          "
+      
+      # Run smoke tests on production
+      - name: Run smoke tests
+        run: |
+          timeout 300 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' https://example.com/health)" != "200" ]]; do sleep 5; done' || false
+          curl -f https://example.com/api/python/
+          curl -f https://example.com/api/node/
+      
+      # Create a GitHub release
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          release_name: Release v1.0.${{ github.run_number }}
+          body: |
+            Release of version v1.0.${{ github.run_number }}
+            
+            Commit: ${{ github.sha }}
+            Deployed to: Production
+          draft: false
+          prerelease: false
