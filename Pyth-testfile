@@ -1,0 +1,98 @@
+import unittest
+import json
+from unittest.mock import patch, MagicMock
+from app import app
+
+class TestPythonService(unittest.TestCase):
+    def setUp(self):
+        self.app = app.test_client()
+        self.app.testing = True
+    
+    def test_health_endpoint(self):
+        # Mock the database connection checks
+        with patch('app.check_mongo_connection', return_value='connected'):
+            with patch('app.check_redis_connection', return_value='connected'):
+                response = self.app.get('/health')
+                data = json.loads(response.data)
+                
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(data['status'], 'healthy')
+                self.assertEqual(data['services']['mongo'], 'connected')
+                self.assertEqual(data['services']['redis'], 'connected')
+    
+    def test_index_endpoint(self):
+        response = self.app.get('/')
+        data = json.loads(response.data)
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(data['message'], 'Welcome to Python Microservice API!')
+    
+    @patch('app.redis_client.get')
+    @patch('app.mongo_db.data.find')
+    def test_get_data_from_mongodb(self, mock_find, mock_redis_get):
+        # Mock Redis cache miss
+        mock_redis_get.return_value = None
+        
+        # Mock MongoDB response
+        mock_find.return_value = [{'name': 'test', 'value': 123}]
+        
+        response = self.app.get('/api/data')
+        data = json.loads(response.data)
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['name'], 'test')
+        self.assertEqual(data[0]['value'], 123)
+    
+    @patch('app.redis_client.get')
+    def test_get_data_from_cache(self, mock_redis_get):
+        # Mock Redis cache hit
+        mock_data = json.dumps([{'name': 'cached', 'value': 456}])
+        mock_redis_get.return_value = mock_data
+        
+        response = self.app.get('/api/data')
+        data = json.loads(response.data)
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['name'], 'cached')
+        self.assertEqual(data[0]['value'], 456)
+    
+    @patch('app.mongo_db.data.insert_one')
+    @patch('app.redis_client.delete')
+    def test_add_data(self, mock_redis_delete, mock_insert):
+        # Mock MongoDB insert response
+        mock_insert.return_value = MagicMock(inserted_id='123')
+        
+        # Test data
+        test_data = {'name': 'new_data', 'value': 789}
+        
+        response = self.app.post('/api/data', 
+                             data=json.dumps(test_data),
+                             content_type='application/json')
+        data = json.loads(response.data)
+        
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(data['message'], 'Data added successfully')
+        self.assertTrue('id' in data)
+        
+        # Verify Redis cache invalidation
+        mock_redis_delete.assert_called_once_with('api_data')
+    
+    def test_process_data(self):
+        # Test data
+        test_values = {'values': [1, 2, 3, 4, 5]}
+        
+        response = self.app.post('/api/process', 
+                             data=json.dumps(test_values),
+                             content_type='application/json')
+        data = json.loads(response.data)
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(data['sum'], 15)
+        self.assertEqual(data['avg'], 3)
+        self.assertEqual(data['min'], 1)
+        self.assertEqual(data['max'], 5)
+
+if __name__ == '__main__':
+    unittest.main()
