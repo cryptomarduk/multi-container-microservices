@@ -226,4 +226,13 @@ const startServer = async () => {
   try {
     await connectMongo();
     app.listen(PORT, () => {
-      console.log(`Node.js service running on port ${PORT} in ${
+      console.log(`Node.js service running on port ${PORT} in ${NODE_ENV} mode`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+// Start the server
+startServer();
